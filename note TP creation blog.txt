@@ -1,0 +1,325 @@
+-- TP BLOG BASE DE DONNEES
+
+-- 4 - JEUX DE DONNEES
+
+-- AUTHOR
+INSERT INTO `author` (`id_author`, `first_name`, `last_name`) VALUES
+(1, 'Samih', 'HABBANI'),
+(2, 'Hachim', 'AMADI'),
+(3, 'Thomas', 'Aloura'),
+(4, 'William', 'La table du bendo');
+
+-- categories
+INSERT INTO `categories` (`id_categories`, `name`, `description`) VALUES
+(1, 'Sport', 'Dans cette catégorie on parle de sport'),
+(2, 'Politique', 'Dans cette catégorie on parle de Politique'),
+(3, 'Science', 'Dans cette catégorie on parle de Science');
+
+INSERT INTO `categories` (`id_categories`, `name`, `description`) VALUES
+(4, 'Informatique', 'Dans cette catégorie on parle de informatique');
+
+-- ARTICLES
+INSERT INTO `articles` (`id_articles`,`title`, `catch_phrase`, `date`, `description`, `related_subject`, `chapo`, `author_id_author`, `categories_id_categories` ) VALUES
+(1, 'Super article', 'Ne ratez pas cet article', '2023-04-04', 'Super description dun article du tonnerre', '[\"sujet1\", \"sujet2\"]', 'Pourquoi cet article est intéressant? [EXPLICATIONS]', 1, 1);
+
+INSERT INTO articles (`id_articles`,`title`, `catch_phrase`, `date`, `description`, `author_id_author`, `categories_id_categories` ) VALUES (2, 'Web developpement', 'La tendance 2023', ' 2023-01-01', 'La nouvelle logiciel pour programmation', 1, 4),
+(3, "L'élection europenne", "L'élection 2024", 2024-01-01, 'Quelle partie gagnera majorité des votes', 3, 2);  
+
+INSERT INTO articles (`id_articles`,`title`, `catch_phrase`, `date`, `description`, `author_id_author`, `categories_id_categories` ) VALUES (4, 'SQL', 'MySQL programmation', ' 2023-10-31', 'Le logiciel pour SQL', 1, 4);
+
+
+-- USER
+INSERT INTO `user` (`id_user`, `first_name`, `last_name`, `email`, `adress`, `postal_code`, `city`) VALUES
+(1, 'Samih', 'Habbani', 'samih@mail.com', 'Rue de Paris', '06400', 'Cannes');
+
+INSERT INTO user (id_user, first_name, last_name) VALUES (3, 'Pei-Ju', 'LIN');
+
+-- COMMENTS
+INSERT INTO `comments` (`id_comments`, `description`, `date`, `articles_id_articles`, `user_id_user`) VALUES
+(1, 'article à chier', '2023-04-04', 1, 1);
+
+INSERT INTO comments (id_comments, description, date, articles_id_articles, user_id_user) VALUES (2, 'good article', '2023-02-05', 2, 3);
+
+-- contact
+INSERT INTO contact (id_contact, object, message, date) VALUES(1, 'subject1', 'Nourredine c\'est dur le matin', '2024-01-04');
+
+-- newsletter
+INSERT INTO newsletter (id_newsletter, frequence, email) VALUES(1, 'journalier', 'mail@mail.com');
+
+================================================================================
+
+--SELECTIONS
+
+--DISTINCT // Afficher les différentes catégories en BDD
+
+SELECT * FROM categories;
+
+--GROUP BY // Le nombre d’article par catégorie
+
+SELECT name, COUNT(id_articles) FROM categories c, articles a 
+WHERE c.id_categories = a.categories_id_categories 
+GROUP BY categories_id_categories;
+
+-- HAVING // Le nombre d’article par catégorie ayant plus de 2 commentaires
+
+SELECT name, COUNT(id_articles), id_comments FROM categories c, articles a, comments co  
+WHERE c.id_categories = a.categories_id_categories 
+AND co.articles_id_articles = a.id_articles
+GROUP BY c.id_categories
+HAVING COUNT(co.id_comments) > 2 ;
+
+-- HAVING // Le nom des auteurs ayant écrit plus de 2 articles
+
+SELECT first_name, last_name, COUNT(id_articles) FROM author au, articles a 
+WHERE au.id_author = a.author_id_author 
+GROUP BY au.id_author
+HAVING COUNT(a.id_articles) > 2 ;
+
+-- ORDER BY // Afficher les articles par ordre décroissant de date
+
+SELECT * FROM articles ORDER BY date DESC;
+
+=======================================================================================
+
+-- FILTRES
+
+--BETWEEN // Afficher seulement les articles parus entre le 01/03/2023 et le 22/03/2024 ayant 		
+	 	 pour auteur ‘Samih Habbani’
+
+SELECT * FROM articles
+INNER JOIN author ON author.id_author = articles.author_id_author
+WHERE author.first_name = 'Samih'
+AND author.last_name = 'Habbani'
+AND date BETWEEN '2023-03-01' AND '2024-03-22'; 
+
+--LIKE // Afficher seulement les articles qui parlent de programmation (On devra alors 	 	
+	 	 retrouver le mot ‘programmation’ dans la description de l’article
+
+SELECT * FROM articles 
+WHERE description LIKE '%programmation%';
+
+--COUNT // Le nombre de commentaire par article
+
+SELECT articles_id_articles, COUNT(id_comments) FROM comments
+GROUP BY articles_id_articles;
+
+--LIMIT // Pour permettre à votre client de mettre en place une pagination sur son site, vous 
+	 	 afficherez que les 5 premiers résultats
+
+SELECT * FROM articles LIMIT 5;
+
+=================================================================================
+
+-- MODIFICATIONS
+
+-- une requête permettant de modifier un article au niveau son titre
+
+UPDATE articles
+SET title = 'Language SQL'
+WHERE id_articles = 4;
+
+-- ajouter un titre secondaire de maximum 70 caractères dans la table Articles
+
+ALTER TABLE articles
+ADD secondary_title VARCHAR(70);
+
+=================================================================================
+
+-- DELETE
+
+-- Supprimer tous les articles écrits par Samih Habbani sur l’année 2023 ne parlant pas de 
+programmation
+
+DELETE FROM articles
+WHERE author_id_author
+IN (SELECT id_author FROM author
+WHERE first_name = "Samih"
+AND last_name = "Habbani") 
+AND YEAR(date) = 2023 
+AND description NOT LIKE '%programmation%';
+
+!! ERROR 1451 (23000): Cannot delete or update a parent row: a foreign key constraint fails !!
+1. write on PHPMYADMIN and enable foreign key checks
+2. On console, drop the foreign key than ADD CONSTRAINT with option ON DELETE CASCADE
+
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+=========================================================================================
+
+-- CONTRAINTES
+
+-- Vous souhaitez vous assurer que les nouveaux utilisateurs sont majeurs. Vous décidez alors d’ajouter une colonne âge avec une contrainte au niveau de cette colonne : l’âge du user doit au moins être supérieur ou égal à 18 ans.
+
+ALTER TABLE user
+ADD age INT CHECK(age >= 18);
+
+==========================================================================================
+
+-- REQUETES IMBRIQUEES
+
+-- Afficher le titre des articles que le user Samih n’a pas encore commenté
+
+SELECT title FROM articles
+INNER JOIN comments ON articles.id_articles = comments.articles_id_articles
+INNER JOIN user ON user.id_user = comments.user_id_user
+WHERE user.first_name != 'Samih';
+
+-- Connaître le nom des users ayant commenté un article lié à la programmation sur l’année 
+2023
+
+
+SELECT u.first_name, u.last_name FROM user u, comments c, articles a
+WHERE u.id_user = c.user_id_user 
+AND c.articles_id_articles = a.id_articles
+AND YEAR(c.date) = 2023
+AND a.description LIKE '%programmation%';
+
+
+-- Connaître le titre des articles lié à la programmation qui n’ont pas encore été commenté
+
+SELECT title FROM articles WHERE
+description LIKE '%programmation%'
+AND id_articles NOT IN (
+SELECT articles_id_articles FROM comments);
+
+-- Afficher les dates ou Samih à commenté un article
+
+SELECT u.first_name, u.last_name, c.date, a.title FROM comments c, articles a, user u
+WHERE c.articles_id_articles = a.id_articles
+AND u.id_user = c.user_id_user
+AND u.first_name = 'Samih';
+
+===============================================================================
+
+--  JOINTURES
+
+-- INNER JOIN
+-- Afficher qui a commenté quel article et quand?
+
+SELECT u.first_name, u.last_name, a.title, c.date FROM user u
+INNER JOIN comments c ON u.id_user = c.user_id_user
+INNER JOIN articles a ON a.id_articles =  c.articles_id_articles;
+
+-- Afficher le nombre de commentaire par utilisateur
+
+SELECT user.first_name, user.last_name, COUNT(comments.id_comments) FROM comments
+INNER JOIN user ON user.id_user = comments.user_id_user
+GROUP BY user.id_user;
+
+-- Afficher combien d’article ont été écrit par un auteur ayant son prénom commençant par un ’s'
+
+SELECT au.first_name, au.last_name, COUNT(a.id_articles) FROM author au
+INNER JOIN articles a ON au.id_author = a.author_id_author
+WHERE au.first_name LIKE 'S%';
+
+***************************************
+-- LEFT JOIN
+-- Afficher tous les auteurs ayant écris un article [et le titre de l’article] ou non
+
+SELECT au.first_name, au.last_name, a.title FROM author au
+LEFT JOIN articles a ON au.id_author = a.author_id_author;
+*******************************************
+
+--RIGHT JOIN
+-- Afficher tous les articles ayant un commentaire ou plus [et le texte du commentaire ou même aucun commentaire
+
+SELECT a.title, c.id_comments, c.description FROM comments c
+RIGHT JOIN articles a ON a.id_articles = c.articles_id_articles;
+
+===============================================================================
+
+12 - FONCTION UTILISATEUR
+
+--Votre client souhaite maintenant avoir un historique de tous les articles et leur auteur.
+Il aimerait donc pouvoir stocker dans un fichier Excel, le nom de l’article associé à son auteur 
+comme ceci :
+- L’article intitulé ‘NOM_DE_L_ARTICLE’ a été écrit par ‘PRENOM_NOM_DE_L_AUTEUR’
+
+DELIMITER //
+CREATE FUNCTION Title_author (ArticleTitle VARCHAR(225), firstName VARCHAR(75), lastName VARCHAR(75))
+RETURNS VARCHAR(225)
+BEGIN
+RETURN CONCAT ("L'article intitulé ", ArticleTitle , " a été écrit par ", firstName, lastName);
+END//
+DELIMITER ;
+
+SELECT Title_author(title, first_name, last_name) FROM articles
+INNER JOIN author ON articles.author_id_author = author.id_author;
+
+===================================================================================
+
+13 - PROCÉDURES STOCKÉES
+
+-- Afficher le titre des articles liés à la programmation que le User ‘Guillaume’ n’a pas encore commenté D’ailleurs, vous souhaitez même exécuter cette requête pour Chloé, Thomas et Romain. Vous décidez alors d’isoler et rendre paramétrable cette requête dans une procédure stockée que vous appellerez : articleNotCommented
+
+DELIMITER // 
+
+CREATE PROCEDURE articleNotCommented(firstName VARCHAR(45))
+
+BEGIN
+
+SELECT title FROM articles WHERE id_articles NOT IN (
+SELECT articles_id_articles FROM comments WHERE user_id_user IN (
+SELECT id_user FROM user WHERE first_name = firstName ));
+
+END //
+
+DELIMITER;
+
+CALL articleNotCommented('Samih');
+
+===========================================================================================
+
+14 - VUES ET TABLES TEMPORAIRES 
+
+-- TABLE VIRTUELLE
+
+-- Qui a commenté quoi et quand ?
+
+CREATE VIEW who_comment_when AS
+SELECT u.first_name, c.date, a.title, c.description
+FROM user u, comments c, articles a
+WHERE u.id_user = c.user_id_user
+AND c.articles_id_articles = a.id_articles;
+
+SELECT * FROM who_comment_when;
+
+********************************
+
+--TABLE TEMPORAIRE
+
+-- Qui a commenté quoi et quand pour les articles liés à la programmation en 2022?
+
+CREATE TEMPORARY TABLE comments2023 AS
+SELECT u.first_name, c.date, a.title, c.description
+FROM user u, comments c, articles a
+WHERE u.id_user = c.user_id_user
+AND c.articles_id_articles = a.id_articles
+AND a.description LIKE '%programmation%'
+AND YEAR(c.date) = 2023;
+
+SELECT * FROM comments2023;
+
+===================================================================================
+
+15 - VARIABLES ET REQUÊTES PRÉPARÉES 
+
+--Vous lui définissez alors une variable que vous nommerez Author.
+Et exécuterez la requête suivante en la rendant paramétrable et en lui attribuant au 	 	
+préalable une valeur pour votre variable Author :
+Afficher les articles créer par x autheur en 2023
+
+
+PREPARE requete_AuthorArticle FROM ' SELECT first_name, last_name, title FROM articles, author 
+WHERE author.id_author = articles.author_id_author 
+AND first_name = ?
+AND last_name = ?';
+
+SET @Author_FirstName = '';
+SET @Author_LastName = '';
+
+EXECUTE requete_AuthorArticle USING @Author_FirstName, @Author_LastName ;
+
+DEALLOCATE PREPARE requete_AuthorArticle;
+
+
